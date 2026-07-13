@@ -15,6 +15,15 @@ A PreToolUse hook (`.claude/hooks/protect-tests.sh`) blocks agent edits to
 Changing the contract is a human decision, granted per task, and expected to
 be justified in the commit message.
 
+## Amendment (post-benchmark)
+The benchmark's first run found the obvious bypass: the agent created
+`.agent/allow-test-edits` itself via bash. A second hook now blocks agents
+from creating the override (removal stays free) and blocks bash-level writes
+to `tests/**` and `specs/**`. Honest limit: bash filtering is heuristic —
+a determined adversarial agent can still find paths around it. The threat
+model here is drift, not adversaries; CI mutation testing remains the
+tool-agnostic backstop.
+
 ## Consequences
 - The legitimate flow (spec change → test change → code change) gains one
   explicit human step. Acceptable: contract changes SHOULD be slower than

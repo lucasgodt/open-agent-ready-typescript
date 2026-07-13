@@ -144,7 +144,9 @@ playbooks live in `references/` next to the SKILL.md.
 To test whether an agent (you) can work in this codebase correctly, implement
 the following without further human input:
 
-> **Add a `cancel-invoice` use case.** A draft or sent invoice can be
+> **Add a `cancel-invoice` use case.** (The one permitted human
+> interaction: asking for `.agent/allow-test-edits` when the hook blocks you
+> — the override is human-granted by design, never self-created.) A draft or sent invoice can be
 > cancelled; a paid invoice cannot (fails with `INVOICE_NOT_CANCELABLE`).
 > Cancelled is a terminal status: no edits, sends or payments afterwards.
 > Cancelled invoices are never overdue. Expose `POST /invoices/:id/cancel`
