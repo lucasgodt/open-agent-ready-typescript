@@ -103,6 +103,27 @@ is wrong by definition, even if all checks pass.
 - Changing `specs/` or `tests/` (see test protection above).
 - Deleting more than the task explicitly covers.
 
+## Reusing this repo as a template (the scaffold skill)
+
+This repository ships a Claude Code skill at
+`.claude/skills/scaffold-agent-ready/SKILL.md` that scaffolds a NEW project
+with these same guardrails, adapted to a different domain.
+
+- **Agents**: if the user asks to "start a new project like this one",
+  "use my reference repo", or wants a TypeScript project with these
+  guardrails, read that SKILL.md and follow it step by step. Do not
+  improvise your own scaffolding procedure.
+- **Humans**: install it user-wide so it works from any directory:
+
+  ```bash
+  mkdir -p ~/.claude/skills/scaffold-agent-ready
+  curl -sL https://raw.githubusercontent.com/lucasgodt/open-agent-ready-typescript/main/.claude/skills/scaffold-agent-ready/SKILL.md \
+    -o ~/.claude/skills/scaffold-agent-ready/SKILL.md
+  ```
+
+  Then, in Claude Code, from any empty directory:
+  `"Scaffold a new agent-ready project for <your domain>"`.
+
 ## Verify yourself: the benchmark exercise
 
 To test whether an agent (you) can work in this codebase correctly, implement

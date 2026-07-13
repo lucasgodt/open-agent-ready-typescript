@@ -63,6 +63,30 @@ this repo correctly: spec → tests → domain → use case → HTTP, `verify` g
 nothing else touched. Point your agent at it and grade the diff. That's the
 whole point of this repository — it's not just an example, it's a test bench.
 
+## Start your next project from this one
+
+This repo doubles as a template, and ships a [Claude Code skill](.claude/skills/scaffold-agent-ready/SKILL.md) that does the transplant for
+you: it keeps the guardrail system (configs, hooks, CI, layer structure),
+removes the invoicing example, and grows your new domain spec-first inside it.
+
+One-time install (user-wide):
+
+```bash
+mkdir -p ~/.claude/skills/scaffold-agent-ready
+curl -sL https://raw.githubusercontent.com/lucasgodt/open-agent-ready-typescript/main/.claude/skills/scaffold-agent-ready/SKILL.md \
+  -o ~/.claude/skills/scaffold-agent-ready/SKILL.md
+```
+
+Then from any empty directory, in Claude Code:
+
+> Scaffold a new agent-ready project for [your domain]
+
+Prefer doing it by hand? The recipe is the same one the skill follows:
+clone, keep every config/hook/workflow file plus the layer skeleton, delete
+`src` domain contents + specs + tests of the example, and rebuild your domain
+following the spec-first workflow in AGENTS.md. GitHub's "Use this template"
+button also works for the mechanical copy.
+
 ## Run it
 
 ```bash
