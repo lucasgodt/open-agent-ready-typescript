@@ -2,13 +2,14 @@ import {
   EmptyInvoiceError,
   InvalidDueDateError,
   InvalidLineItemError,
+  InvoiceNotCancelableError,
   InvoiceNotEditableError,
   InvoiceNotPayableError,
   PaymentExceedsBalanceError,
 } from "./errors.js";
 import { Money } from "./money.js";
 
-export type InvoiceStatus = "draft" | "sent" | "paid";
+export type InvoiceStatus = "draft" | "sent" | "paid" | "cancelled";
 
 export interface LineItem {
   readonly description: string;
@@ -27,6 +28,7 @@ export interface Payment {
  * an invalid Invoice from outside this file.
  *
  * State machine:  draft --send()--> sent --recordPayment() until balance 0--> paid
+ *                 draft/sent --cancel()--> cancelled (terminal: no further transitions)
  * "Overdue" is intentionally NOT a status: it is derived from
  * (status === "sent" && now > dueDate). See docs/adr/0002.
  */
@@ -157,6 +159,13 @@ export class Invoice {
     if (this.balance().isZero()) {
       this._status = "paid";
     }
+  }
+
+  cancel(): void {
+    if (this._status !== "draft" && this._status !== "sent") {
+      throw new InvoiceNotCancelableError(this._status);
+    }
+    this._status = "cancelled";
   }
 
   // ── Serialization boundary ───────────────────────────────────

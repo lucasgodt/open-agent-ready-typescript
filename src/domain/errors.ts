@@ -51,6 +51,13 @@ export class InvalidDueDateError extends DomainError {
   }
 }
 
+export class InvoiceNotCancelableError extends DomainError {
+  readonly code = "INVOICE_NOT_CANCELABLE";
+  constructor(status: string) {
+    super(`only draft or sent invoices can be cancelled, current status: ${status}`);
+  }
+}
+
 export class InvoiceNotFoundError extends DomainError {
   readonly code = "INVOICE_NOT_FOUND";
   constructor(id: string) {

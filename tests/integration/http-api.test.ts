@@ -78,6 +78,18 @@ describe("HTTP error mapping", () => {
     expect(res.status).toBe(404);
   });
 
+  it("cancel → 204, then cancelling again → 409 INVOICE_NOT_CANCELABLE", async () => {
+    const created = await post("/invoices", { customerName: "ACME", currency: "BRL" });
+    const { invoiceId } = (await created.json()) as { invoiceId: string };
+
+    expect((await post(`/invoices/${invoiceId}/cancel`, {})).status).toBe(204);
+
+    const again = await post(`/invoices/${invoiceId}/cancel`, {});
+    expect(again.status).toBe(409);
+    const body = (await again.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("INVOICE_NOT_CANCELABLE");
+  });
+
   it("business rule violations → 4xx with stable code", async () => {
     const created = await post("/invoices", { customerName: "ACME", currency: "BRL" });
     const { invoiceId } = (await created.json()) as { invoiceId: string };

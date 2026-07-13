@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { AddLineItem } from "../application/use-cases/add-line-item.js";
+import { CancelInvoice } from "../application/use-cases/cancel-invoice.js";
 import { CreateInvoice } from "../application/use-cases/create-invoice.js";
 import { GetInvoice } from "../application/use-cases/get-invoice.js";
 import { RecordPayment } from "../application/use-cases/record-payment.js";
@@ -25,6 +26,7 @@ export function wireUseCases(deps: {
     addLineItem: new AddLineItem(deps.invoices),
     sendInvoice: new SendInvoice(deps.invoices, deps.clock),
     recordPayment: new RecordPayment(deps.invoices, deps.clock),
+    cancelInvoice: new CancelInvoice(deps.invoices),
     getInvoice: new GetInvoice(deps.invoices, deps.clock),
   };
 }

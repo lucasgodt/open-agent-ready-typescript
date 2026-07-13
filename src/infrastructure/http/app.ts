@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z, ZodError } from "zod";
 import { DomainError } from "../../domain/errors.js";
 import type { AddLineItem } from "../../application/use-cases/add-line-item.js";
+import type { CancelInvoice } from "../../application/use-cases/cancel-invoice.js";
 import type { CreateInvoice } from "../../application/use-cases/create-invoice.js";
 import type { GetInvoice } from "../../application/use-cases/get-invoice.js";
 import type { RecordPayment } from "../../application/use-cases/record-payment.js";
@@ -12,6 +13,7 @@ export interface UseCases {
   addLineItem: AddLineItem;
   sendInvoice: SendInvoice;
   recordPayment: RecordPayment;
+  cancelInvoice: CancelInvoice;
   getInvoice: GetInvoice;
 }
 
@@ -46,6 +48,7 @@ const ERROR_STATUS: Record<string, 400 | 404 | 409 | 422> = {
   INVOICE_NOT_FOUND: 404,
   INVOICE_NOT_EDITABLE: 409,
   INVOICE_NOT_PAYABLE: 409,
+  INVOICE_NOT_CANCELABLE: 409,
   EMPTY_INVOICE: 422,
   PAYMENT_EXCEEDS_BALANCE: 422,
   INVALID_DUE_DATE: 422,
@@ -92,6 +95,11 @@ export function buildApp(useCases: UseCases): Hono {
   app.post("/invoices/:id/payments", async (c) => {
     const body = recordPaymentBody.parse(await c.req.json());
     await useCases.recordPayment.execute({ invoiceId: c.req.param("id"), ...body });
+    return c.body(null, 204);
+  });
+
+  app.post("/invoices/:id/cancel", async (c) => {
+    await useCases.cancelInvoice.execute({ invoiceId: c.req.param("id") });
     return c.body(null, 204);
   });
 

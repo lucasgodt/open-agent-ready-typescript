@@ -1,4 +1,5 @@
 import { InvoiceNotFoundError } from "../../domain/errors.js";
+import type { InvoiceStatus } from "../../domain/invoice.js";
 import type { Clock } from "../ports/clock.js";
 import type { InvoiceRepository } from "../ports/invoice-repository.js";
 
@@ -6,7 +7,7 @@ export interface InvoiceView {
   id: string;
   customerName: string;
   currency: string;
-  status: "draft" | "sent" | "paid";
+  status: InvoiceStatus;
   overdue: boolean;
   dueDate: string | null;
   totalCents: number;
