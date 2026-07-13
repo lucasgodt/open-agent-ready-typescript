@@ -1,0 +1,38 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Dependency rules (the architecture, enforced)
+        run: npm run deps
+      - name: Tests with coverage thresholds
+        run: npm run test:coverage
+
+  mutation:
+    # Mutation testing is the defense against "tests that don't test anything".
+    # Coverage says a line ran; mutation says the tests would notice if it broke.
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run mutation
