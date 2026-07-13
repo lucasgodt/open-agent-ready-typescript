@@ -106,8 +106,12 @@ is wrong by definition, even if all checks pass.
 ## Reusing this repo as a template (the scaffold skill)
 
 This repository ships a Claude Code skill at
-`.claude/skills/scaffold-agent-ready/SKILL.md` that scaffolds a NEW project
-with these same guardrails, adapted to a different domain.
+`.claude/skills/scaffold-agent-ready/` that scaffolds a NEW project with
+these same guardrails, adapted to a different domain, in three shapes:
+**backend API** (this repo's own structure), **frontend app** (React/Vite,
+with the UI as an adapter around a pure domain) and **monorepo**
+(pnpm workspaces, where layers become physical packages). The variant
+playbooks live in `references/` next to the SKILL.md.
 
 - **Agents**: if the user asks to "start a new project like this one",
   "use my reference repo", or wants a TypeScript project with these
@@ -116,9 +120,12 @@ with these same guardrails, adapted to a different domain.
 - **Humans**: install it user-wide so it works from any directory:
 
   ```bash
-  mkdir -p ~/.claude/skills/scaffold-agent-ready
-  curl -sL https://raw.githubusercontent.com/lucasgodt/open-agent-ready-typescript/main/.claude/skills/scaffold-agent-ready/SKILL.md \
-    -o ~/.claude/skills/scaffold-agent-ready/SKILL.md
+  BASE=https://raw.githubusercontent.com/lucasgodt/open-agent-ready-typescript/main/.claude/skills/scaffold-agent-ready
+  mkdir -p ~/.claude/skills/scaffold-agent-ready/references
+  curl -sL $BASE/SKILL.md -o ~/.claude/skills/scaffold-agent-ready/SKILL.md
+  for f in backend frontend monorepo; do
+    curl -sL $BASE/references/$f.md -o ~/.claude/skills/scaffold-agent-ready/references/$f.md
+  done
   ```
 
   Then, in Claude Code, from any empty directory:

@@ -68,18 +68,31 @@ whole point of this repository — it's not just an example, it's a test bench.
 This repo doubles as a template, and ships a [Claude Code skill](.claude/skills/scaffold-agent-ready/SKILL.md) that does the transplant for
 you: it keeps the guardrail system (configs, hooks, CI, layer structure),
 removes the invoicing example, and grows your new domain spec-first inside it.
+It covers three project shapes, each with its own playbook in
+[`references/`](.claude/skills/scaffold-agent-ready/references):
+
+- **Backend API/service** — this repo's own structure ([backend.md](.claude/skills/scaffold-agent-ready/references/backend.md))
+- **Frontend app** — React/Vite with the UI as an adapter around a pure,
+  React-free domain; mutation testing targets domain/application, never
+  components ([frontend.md](.claude/skills/scaffold-agent-ready/references/frontend.md))
+- **Monorepo** — pnpm workspaces where layers become physical packages;
+  `packages/domain` with an empty `dependencies` object is the loudest
+  guardrail in the repo ([monorepo.md](.claude/skills/scaffold-agent-ready/references/monorepo.md))
 
 One-time install (user-wide):
 
 ```bash
-mkdir -p ~/.claude/skills/scaffold-agent-ready
-curl -sL https://raw.githubusercontent.com/lucasgodt/open-agent-ready-typescript/main/.claude/skills/scaffold-agent-ready/SKILL.md \
-  -o ~/.claude/skills/scaffold-agent-ready/SKILL.md
+BASE=https://raw.githubusercontent.com/lucasgodt/open-agent-ready-typescript/main/.claude/skills/scaffold-agent-ready
+mkdir -p ~/.claude/skills/scaffold-agent-ready/references
+curl -sL $BASE/SKILL.md -o ~/.claude/skills/scaffold-agent-ready/SKILL.md
+for f in backend frontend monorepo; do
+  curl -sL $BASE/references/$f.md -o ~/.claude/skills/scaffold-agent-ready/references/$f.md
+done
 ```
 
 Then from any empty directory, in Claude Code:
 
-> Scaffold a new agent-ready project for [your domain]
+> Scaffold a new agent-ready [backend | frontend | monorepo] project for [your domain]
 
 Prefer doing it by hand? The recipe is the same one the skill follows:
 clone, keep every config/hook/workflow file plus the layer skeleton, delete
