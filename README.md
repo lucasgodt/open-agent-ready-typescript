@@ -1,5 +1,7 @@
 # open-agent-ready-typescript
 
+[![ci](https://github.com/lucasgodt/open-agent-ready-typescript/actions/workflows/ci.yml/badge.svg)](https://github.com/lucasgodt/open-agent-ready-typescript/actions)
+
 **A reference TypeScript codebase engineered so AI agents produce good code
 in it — architecture as guardrails, not as documentation.**
 
