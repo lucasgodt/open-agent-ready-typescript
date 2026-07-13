@@ -25,6 +25,8 @@ KEEP unchanged (the guardrail system):
   the guardrails, which carry over), `.gitignore`, `LICENSE` (confirm the
   license choice with the user)
 - The four-layer folder structure under `src/` and the `tests/` split
+- `scripts/` (spec-coverage checker + use-case scaffolder) and the `specs`
+  entry in the `verify` script
 - `.claude/skills/` may be deleted in the new project (the skill belongs to
   the reference repo, not to its offspring)
 

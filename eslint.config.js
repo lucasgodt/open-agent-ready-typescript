@@ -19,4 +19,10 @@ export default tseslint.config(
     files: ["src/main/**"],
     rules: { "no-console": "off" },
   },
+  {
+    // CLI scripts (checkers, scaffolders) are Node programs: console is their UI.
+    files: ["scripts/**"],
+    languageOptions: { globals: { console: "readonly", process: "readonly" } },
+    rules: { "no-console": "off" },
+  },
 );

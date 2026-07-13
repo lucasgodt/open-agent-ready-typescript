@@ -37,10 +37,13 @@ integer cents, a proper state machine) built to demonstrate one thesis:
    A hook runs `typecheck + lint + deps + test` on every `git commit` and
    feeds failures back to the agent — feedback loop, not just a wall.
 
-5. **Specs are the contract, and the workflow starts there.**
+5. **Spec-driven development is a build gate, not a suggestion.**
    One markdown spec per use case with Given/When/Then acceptance criteria;
-   tests mirror them one `it()` per criterion. A behavior change that doesn't
-   touch `specs/` is wrong by definition.
+   tests mirror them one `it()` per criterion — and `npm run specs` (inside
+   `verify`, the commit hook and CI) fails on any use case without a spec,
+   any orphan spec, and any criterion without its mirrored test. The golden
+   path is `npm run new -- <use-case>`: spec + mirrored test stub + use-case
+   stub scaffolded with matching names, workflow printed.
 
 ## Agent-native structure
 

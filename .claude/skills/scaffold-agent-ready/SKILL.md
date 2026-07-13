@@ -20,8 +20,11 @@ domain inside it.
    `tests/**` and `specs/**` without a human-created `.agent/allow-test-edits`.
 4. **Commit gate** — a hook runs the full verify suite on `git commit`,
    blocking on failure and feeding errors back to the agent.
-5. **Spec-first workflow** — one Given/When/Then spec per use case, tests
-   mirroring criteria one `it()` per criterion, hierarchical AGENTS.md.
+5. **Spec-driven development as a build gate** — one Given/When/Then spec
+   per use case, tests mirroring criteria one `it("N. ...")` per criterion,
+   enforced by `scripts/check-spec-coverage.mjs` inside `verify` (use case
+   without spec, orphan spec, or unmirrored criterion all fail the build).
+   `npm run new -- <name>` scaffolds the golden path. Hierarchical AGENTS.md.
 
 ## Step 0 — Gather what you need
 
@@ -50,8 +53,12 @@ the other two where relevant.
   blocks writes to `tests/**` and `specs/**`. At the start of scaffolding,
   ask the human to run `mkdir -p .agent && touch .agent/allow-test-edits`.
   DELETE that file before finishing — its absence is a success criterion.
-- **Spec-first even during scaffolding**: for each core operation, write the
-  spec, then the mirrored tests, then the implementation.
+- **Spec-first even during scaffolding**: for each core operation use the
+  golden path (`npm run new -- <name>`), fill the spec, then the mirrored
+  tests, then the implementation. Copy `scripts/check-spec-coverage.mjs` and
+  `scripts/new-use-case.mjs` from the reference into every variant and wire
+  `specs` into the `verify` script; adjust the use-cases/tests paths inside
+  the checker if the variant's layout differs (frontend, monorepo packages).
 - Domain rules that carry over regardless of variant: aggregates own their
   invariants and throw `DomainError` subclasses with stable UPPER_SNAKE
   codes; money (if any) is integer cents in a value object; time and

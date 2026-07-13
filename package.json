@@ -1,10 +1,12 @@
 {
   "name": "open-agent-ready-typescript",
   "version": "1.0.0",
-  "description": "A reference TypeScript codebase engineered so AI agents produce good code in it — architecture as guardrails, not as documentation.",
+  "description": "A reference TypeScript codebase engineered so AI agents produce good code in it \u2014 architecture as guardrails, not as documentation.",
   "type": "module",
   "license": "MIT",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "tsx src/main/server.ts",
     "typecheck": "tsc --noEmit",
@@ -14,7 +16,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "mutation": "stryker run",
-    "verify": "npm run typecheck && npm run lint && npm run deps && npm run test"
+    "verify": "npm run typecheck && npm run lint && npm run deps && npm run specs && npm run test",
+    "specs": "node scripts/check-spec-coverage.mjs",
+    "new": "node scripts/new-use-case.mjs"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",

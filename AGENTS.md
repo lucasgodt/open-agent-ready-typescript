@@ -51,7 +51,11 @@ boundary, stop and ask the human — the task is probably mis-specified.
 
 ## The workflow: spec first
 
-For any new behavior (new use case, changed business rule):
+For any new behavior (new use case, changed business rule), start with the
+golden path: `npm run new -- <use-case-name>` creates the spec, the mirrored
+test stub and the use-case stub with matching names, then prints these steps.
+Scaffolding intentionally leaves `verify` red (it.todo stubs don't satisfy the
+spec gate): finish the loop or revert — half-done contracts don't get committed.
 
 1. Write or update the spec in `specs/<use-case>.md` using `specs/_TEMPLATE.md`.
    Acceptance criteria must be concrete Given/When/Then statements.
@@ -73,6 +77,10 @@ is wrong by definition, even if all checks pass.
   in the commit message.
 - **Commit gate**: a hook runs `npm run verify` on every `git commit` and
   blocks on failure, feeding the errors back to you. Fix and retry.
+- **Spec-coverage gate**: `npm run specs` (inside `verify`) fails when a use
+  case lacks a spec, a spec lacks a use case (orphan), or any numbered
+  acceptance criterion lacks its mirrored `it("N. ...")`. Spec-driven
+  development is not a suggestion here; it is a build gate.
 - **Coverage thresholds** (90% lines) and **mutation testing** (break < 75%)
   run in CI. Tests that execute code without asserting behavior will fail
   the mutation gate — write assertions, not tourism.
