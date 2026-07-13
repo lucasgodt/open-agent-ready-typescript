@@ -1,0 +1,665 @@
+ ▐▛███▜▌   Claude Code v2.1.207
+▝▜█████▛▘  Fable 5 · Claude Max
+  ▘▘ ▝▝    ~/Downloads/oart
+
+ ▎ Extended through July 19
+ ▎ We're extending Claude Fable 5 access on all paid plans, as well as keeping Claude Code’s weekly rate limits 50% higher, through July 19.
+ ▎
+ ▎ As before, you can use up to half of your weekly usage limit on Fable 5. After that, you can keep using Fable 5 with usage credits, or switch to another model to keep working within your remaining limits.
+ ▎
+ ▎ More details here: https://support.claude.com/en/articles/15424964-claude-fable-5-promotional-access
+
+❯ Implemente o exercício de benchmark descrito no final do AGENTS.md            
+
+⏺ Vou ler o AGENTS.md para entender o exercício de benchmark.
+
+  Read 10 files, listed 2 directories (ctrl+o to expand)
+
+⏺ Entendi a estrutura. Vou olhar ainda o get-invoice, o teste de integração, o
+  script npm run new e o hook de proteção, para saber exatamente o que me
+  espera.
+
+  Read 2 files, listed 1 directory (ctrl+o to expand)
+
+⏺ Bash(ls /Users/lucasgodt/Downloads/oart/.agent 2>/dev/null; npm run new --
+      cancel-invoice)
+  ⎿  > open-agent-ready-typescript@1.0.0 new
+     > node scripts/new-use-case.mjs cancel-invoice
+     … +15 lines (ctrl+o to expand)
+
+⏺ Write(specs/cancel-invoice.md)
+  ⎿  Error writing file
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Write(specs/cancel-invoice.md)
+  ⎿  Error: PreToolUse:Write hook error: [bash .claude/hooks/protect-tests.sh]: 
+     BLOCKED: '/Users/lucasgodt/Downloads/oart/specs/cancel-invoice.md' is a 
+     test or spec file.
+     Tests and specs are the contract. If the task legitimately requires 
+     changing them,
+     ask the human to run: mkdir -p .agent && touch .agent/allow-test-edits
+     and explain in the PR why the contract changed.
+
+⏺ Como esperado, o hook bloqueou a escrita na spec. Cheguei ao ponto da única
+  interação humana permitida pelo exercício: preciso que você conceda a
+  liberação para editar specs/ e tests/.
+
+  O que já fiz: rodei npm run new -- cancel-invoice, que criou os stubs de spec,
+  teste e use case. O restante (domínio, use case, HTTP, composition root) não
+  é protegido, mas o fluxo exige spec e testes primeiro — e ambos estão
+  bloqueados pelo hook.
+
+  O contrato que proponho para a spec (specs/cancel-invoice.md):
+
+  1. Fatura draft cancelada → status vira cancelled.
+  2. Fatura sent cancelada → status vira cancelled.
+  3. Fatura paid → falha com INVOICE_NOT_CANCELABLE.
+  4. Cancelar duas vezes → falha com INVOICE_NOT_CANCELABLE (status terminal).
+  5. Após cancelada: adicionar item/enviar falham com INVOICE_NOT_EDITABLE,
+  pagamento falha com INVOICE_NOT_PAYABLE.
+  6. Fatura cancelada com vencimento no passado nunca é overdue.
+  7. invoiceId desconhecido → INVOICE_NOT_FOUND.
+
+  Para eu continuar, rode no prompt:
+
+  ! mkdir -p .agent && touch .agent/allow-test-edits
+
+  Assim que o arquivo existir, escrevo a spec e os testes espelhados, implemento
+  domínio → use case → POST /invoices/:id/cancel, removo a liberação (rm 
+  .agent/allow-test-edits) e finalizo com npm run verify verde.
+
+✻ Worked for 2m 32s
+
+!  mkdir -p .agent && touch .agent/allow-test-edits                             
+  ⎿  (Bash completed with no output)
+
+⏺ Liberação concedida. Escrevendo a spec e os testes espelhados agora.
+
+⏺ Write(specs/cancel-invoice.md)
+  ⎿  Added 10 lines, removed 5 lines
+       1  # Spec: cancel-invoice
+       2  
+       3  ## Intent
+       4 -<one sentence: what user goal this serves>                     
+       4 +Void an invoice that will never be collected, before or after s
+         +ending, as long as it has not been paid.                       
+       5  
+       6  ## Input
+       7 -`{ ... }`                                                      
+       7 +`{ invoiceId }`                                                
+       8  
+       9  ## Acceptance criteria
+      10 -1. GIVEN ... WHEN ... THEN ...                                 
+      11 -2. GIVEN ... WHEN ... THEN ...                                 
+      10 +1. GIVEN a draft invoice, WHEN cancelled, THEN status becomes "
+         +cancelled".                                                    
+      11 +2. GIVEN a sent invoice, WHEN cancelled, THEN status becomes "c
+         +ancelled".                                                     
+      12 +3. GIVEN a paid invoice, WHEN cancelled, THEN it fails with INV
+         +OICE_NOT_CANCELABLE.                                           
+      13 +4. GIVEN a cancelled invoice, WHEN cancelled again, THEN it fai
+         +ls with INVOICE_NOT_CANCELABLE — cancelled is terminal.        
+      14 +5. GIVEN a cancelled invoice, WHEN a line item is added, it is 
+         +sent, or a payment is recorded, THEN each fails (INVOICE_NOT_ED
+         +ITABLE for edits and sends, INVOICE_NOT_PAYABLE for payments). 
+      15 +6. GIVEN a cancelled invoice whose due date is in the past, THE
+         +N it is not overdue.                                           
+      16 +7. GIVEN an unknown invoiceId, THEN it fails with INVOICE_NOT_F
+         +OUND.                                                          
+      17  
+      18  ## Out of scope
+      14 -<explicitly not handled here>                                  
+      19 +Refunding payments (a paid invoice stays paid), reactivating a 
+         +cancelled invoice, cancellation reasons/audit trail.           
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Write(tests/unit/application/cancel-invoice.test.ts)
+  ⎿  Error writing file
+
+  Read 1 file (ctrl+o to expand)
+⏺ Write(tests/unit/application/cancel-invoice.test.ts)
+  ⎿  Added 108 lines, removed 7 lines
+        1 -import { describe, it } from "vitest";                        
+        2 -                                                              
+        1  /**
+        4 - * Mirrors specs/cancel-invoice.md — one it() per acceptance c
+          -riterion, same                                                
+        5 - * numbers, same order. Replace each it.todo with a real test 
+          -once the                                                      
+        6 - * spec is agreed (requires .agent/allow-test-edits, granted b
+          -y a human).                                                   
+        2 + * Mirrors specs/cancel-invoice.md — one it() per acceptance c
+          +riterion,                                                     
+        3 + * same numbers, same order. Exercises the use case through th
+          +e ports                                                       
+        4 + * with in-memory fakes, like the other application tests.    
+        5   */
+        6 +import { beforeEach, describe, expect, it } from "vitest";    
+        7 +import {                                                      
+        8 +  InvoiceNotCancelableError,                                  
+        9 +  InvoiceNotEditableError,                                    
+       10 +  InvoiceNotFoundError,                                       
+       11 +  InvoiceNotPayableError,                                     
+       12 +} from "../../../src/domain/errors.js";                       
+       13 +import { AddLineItem } from "../../../src/application/use-case
+          +s/add-line-item.js";                                          
+       14 +import { CancelInvoice } from "../../../src/application/use-ca
+          +ses/cancel-invoice.js";                                       
+       15 +import { CreateInvoice } from "../../../src/application/use-ca
+          +ses/create-invoice.js";                                       
+       16 +import { GetInvoice } from "../../../src/application/use-cases
+          +/get-invoice.js";                                             
+       17 +import { RecordPayment } from "../../../src/application/use-ca
+          +ses/record-payment.js";                                       
+       18 +import { SendInvoice } from "../../../src/application/use-case
+          +s/send-invoice.js";                                           
+       19 +import { InMemoryInvoiceRepository } from "../../../src/infras
+          +tructure/persistence/in-memory-invoice-repository.js";        
+       20 +import { fixedClock, sequentialIds } from "../../helpers.js"; 
+       21 +                                                              
+       22 +const NOW = "2026-07-13T12:00:00Z";                           
+       23 +const FUTURE = new Date("2026-08-01T12:00:00Z");              
+       24 +                                                              
+       25 +let repo: InMemoryInvoiceRepository;                          
+       26 +let createInvoice: CreateInvoice;                             
+       27 +let addLineItem: AddLineItem;                                 
+       28 +let sendInvoice: SendInvoice;                                 
+       29 +let recordPayment: RecordPayment;                             
+       30 +let cancelInvoice: CancelInvoice;                             
+       31 +let getInvoice: GetInvoice;                                   
+       32 +                                                              
+       33 +beforeEach(() => {                                            
+       34 +  repo = new InMemoryInvoiceRepository();                     
+       35 +  const clock = fixedClock(NOW);                              
+       36 +  createInvoice = new CreateInvoice(repo, sequentialIds());   
+       37 +  addLineItem = new AddLineItem(repo);                        
+       38 +  sendInvoice = new SendInvoice(repo, clock);                 
+       39 +  recordPayment = new RecordPayment(repo, clock);             
+       40 +  cancelInvoice = new CancelInvoice(repo);                    
+       41 +  getInvoice = new GetInvoice(repo, clock);                   
+       42 +});                                                           
+       43 +                                                              
+       44 +async function draft(): Promise<string> {                     
+       45 +  const { invoiceId } = await createInvoice.execute({ customer
+          +Name: "ACME", currency: "BRL" });                             
+       46 +  await addLineItem.execute({ invoiceId, description: "Consult
+          +ing", unitPriceCents: 10_000, quantity: 2 });                 
+       47 +  return invoiceId;                                           
+       48 +}                                                             
+       49 +                                                              
+       50 +async function sent(): Promise<string> {                      
+       51 +  const id = await draft(); // total 20_000                   
+       52 +  await sendInvoice.execute({ invoiceId: id, dueDate: FUTURE }
+          +);                                                            
+       53 +  return id;                                                  
+       54 +}                                                             
+       55 +                                                              
+       56  describe("spec: cancel-invoice", () => {
+        9 -  it.todo("1. <criterion 1>");                                
+       10 -  it.todo("2. <criterion 2>");                                
+       57 +  it("1. cancelling a draft invoice makes it cancelled", async
+          + () => {                                                      
+       58 +    const id = await draft();                                 
+       59 +    await cancelInvoice.execute({ invoiceId: id });           
+       60 +    expect((await getInvoice.execute(id)).status).toBe("cancel
+          +led");                                                        
+       61 +  });                                                         
+       62 +                                                              
+       63 +  it("2. cancelling a sent invoice makes it cancelled", async 
+          +() => {                                                       
+       64 +    const id = await sent();                                  
+       65 +    await cancelInvoice.execute({ invoiceId: id });           
+       66 +    expect((await getInvoice.execute(id)).status).toBe("cancel
+          +led");                                                        
+       67 +  });                                                         
+       68 +                                                              
+       69 +  it("3. cancelling a paid invoice fails with INVOICE_NOT_CANC
+          +ELABLE", async () => {                                        
+       70 +    const id = await sent();                                  
+       71 +    await recordPayment.execute({ invoiceId: id, amountCents: 
+          +20_000 });                                                    
+       72 +    await expect(cancelInvoice.execute({ invoiceId: id })).rej
+          +ects.toThrow(                                                 
+       73 +      InvoiceNotCancelableError,                              
+       74 +    );                                                        
+       75 +    expect((await getInvoice.execute(id)).status).toBe("paid")
+          +;                                                             
+       76 +  });                                                         
+       77 +                                                              
+       78 +  it("4. cancelling twice fails with INVOICE_NOT_CANCELABLE — 
+          +cancelled is terminal", async () => {                         
+       79 +    const id = await draft();                                 
+       80 +    await cancelInvoice.execute({ invoiceId: id });           
+       81 +    await expect(cancelInvoice.execute({ invoiceId: id })).rej
+          +ects.toThrow(                                                 
+       82 +      InvoiceNotCancelableError,                              
+       83 +    );                                                        
+       84 +  });                                                         
+       85 +                                                              
+       86 +  it("5. a cancelled invoice rejects edits, sends and payments
+          +", async () => {                                              
+       87 +    const id = await sent();                                  
+       88 +    await cancelInvoice.execute({ invoiceId: id });           
+       89 +    await expect(                                             
+       90 +      addLineItem.execute({ invoiceId: id, description: "x", u
+          +nitPriceCents: 1, quantity: 1 }),                             
+       91 +    ).rejects.toThrow(InvoiceNotEditableError);               
+       92 +    await expect(sendInvoice.execute({ invoiceId: id, dueDate:
+          + FUTURE })).rejects.toThrow(                                  
+       93 +      InvoiceNotEditableError,                                
+       94 +    );                                                        
+       95 +    await expect(recordPayment.execute({ invoiceId: id, amount
+          +Cents: 1 })).rejects.toThrow(                                 
+       96 +      InvoiceNotPayableError,                                 
+       97 +    );                                                        
+       98 +  });                                                         
+       99 +                                                              
+      100 +  it("6. a cancelled invoice is never overdue, even past its d
+          +ue date", async () => {                                       
+      101 +    const id = await sent(); // due 2026-08-01                
+      102 +    await cancelInvoice.execute({ invoiceId: id });           
+      103 +    const afterDue = new GetInvoice(repo, fixedClock("2026-09-
+          +01T00:00:00Z"));                                              
+      104 +    expect((await afterDue.execute(id)).overdue).toBe(false); 
+      105 +  });                                                         
+      106 +                                                              
+      107 +  it("7. unknown id fails with INVOICE_NOT_FOUND", async () =>
+          + {                                                            
+      108 +    await expect(cancelInvoice.execute({ invoiceId: "nope" }))
+          +.rejects.toThrow(                                             
+      109 +      InvoiceNotFoundError,                                   
+      110 +    );                                                        
+      111 +  });                                                         
+      112  });
+
+⏺ Agora os testes de invariantes no domínio e o teste de integração HTTP.
+
+⏺ Update(tests/unit/domain/invoice.test.ts)
+  ⎿  Added 1 line
+      3    EmptyInvoiceError,
+      4    InvalidDueDateError,
+      5    InvalidLineItemError,
+      6 +  InvoiceNotCancelableError,                                    
+      7    InvoiceNotEditableError,
+      8    InvoiceNotPayableError,
+      9    PaymentExceedsBalanceError,
+
+⏺ Update(tests/unit/domain/invoice.test.ts)
+  ⎿  Added 27 lines
+       95      inv.recordPayment(Money.of(20_000, "BRL"), NOW);
+       96      expect(() => inv.recordPayment(Money.of(1, "BRL"), NOW)).t
+           oThrow(InvoiceNotPayableError);
+       97    });
+       98 +                                                              
+       99 +  it("transitions draft → cancelled and sent → cancelled", () 
+          +=> {                                                          
+      100 +    const fromDraft = draftWithOneItem();                     
+      101 +    fromDraft.cancel();                                       
+      102 +    expect(fromDraft.status).toBe("cancelled");               
+      103 +                                                              
+      104 +    const fromSent = sentInvoice();                           
+      105 +    fromSent.cancel();                                        
+      106 +    expect(fromSent.status).toBe("cancelled");                
+      107 +  });                                                         
+      108 +                                                              
+      109 +  it("cannot be cancelled once paid", () => {                 
+      110 +    const inv = sentInvoice();                                
+      111 +    inv.recordPayment(Money.of(20_000, "BRL"), NOW);          
+      112 +    expect(() => inv.cancel()).toThrow(InvoiceNotCancelableErr
+          +or);                                                          
+      113 +    expect(inv.status).toBe("paid");                          
+      114 +  });                                                         
+      115 +                                                              
+      116 +  it("cancelled is terminal: no cancel, edits, sends or paymen
+          +ts afterwards", () => {                                       
+      117 +    const inv = sentInvoice();                                
+      118 +    inv.cancel();                                             
+      119 +    expect(() => inv.cancel()).toThrow(InvoiceNotCancelableErr
+          +or);                                                          
+      120 +    expect(() => inv.addLineItem("late", Money.of(1, "BRL"), 1
+          +)).toThrow(InvoiceNotEditableError);                          
+      121 +    expect(() => inv.removeLineItem(0)).toThrow(InvoiceNotEdit
+          +ableError);                                                   
+      122 +    expect(() => inv.send(FUTURE, NOW)).toThrow(InvoiceNotEdit
+          +ableError);                                                   
+      123 +    expect(() => inv.recordPayment(Money.of(1, "BRL"), NOW)).t
+          +oThrow(InvoiceNotPayableError);                               
+      124 +  });                                                         
+      125  });
+      126  
+      127  describe("Invoice derived state", () => {
+
+⏺ Update(tests/unit/domain/invoice.test.ts)
+  ⎿  Added 6 lines
+      136      inv.recordPayment(Money.of(20_000, "BRL"), NOW);
+      137      expect(inv.isOverdue(new Date("2030-01-01T00:00:00Z"))).to
+           Be(false);
+      138    });
+      139 +                                                              
+      140 +  it("is never overdue once cancelled", () => {               
+      141 +    const inv = sentInvoice(); // due 2026-08-01              
+      142 +    inv.cancel();                                             
+      143 +    expect(inv.isOverdue(new Date("2030-01-01T00:00:00Z"))).to
+          +Be(false);                                                    
+      144 +  });                                                         
+      145  });
+      146  
+      147  describe("Invoice line item validation", () => {
+
+⏺ Update(tests/integration/http-api.test.ts)
+  ⎿  Added 19 lines
+      63      expect(view.status).toBe("paid");
+      64      expect(view.balanceCents).toBe(0);
+      65    });
+      66 +                                                               
+      67 +  it("create → add item → send → cancel → get", async () => {  
+      68 +    const created = await post("/invoices", { customerName: "AC
+         +ME", currency: "BRL" });                                       
+      69 +    const { invoiceId } = (await created.json()) as { invoiceId
+         +: string };                                                    
+      70 +                                                               
+      71 +    await post(`/invoices/${invoiceId}/line-items`, {          
+      72 +      description: "Consulting",                               
+      73 +      unitPriceCents: 10_000,                                  
+      74 +      quantity: 2,                                             
+      75 +    });                                                        
+      76 +    await post(`/invoices/${invoiceId}/send`, { dueDate: "2026-
+         +08-01T12:00:00Z" });                                           
+      77 +                                                               
+      78 +    expect((await post(`/invoices/${invoiceId}/cancel`, {})).st
+         +atus).toBe(204);                                               
+      79 +                                                               
+      80 +    const got = await app.request(`/invoices/${invoiceId}`);   
+      81 +    const view = (await got.json()) as { status: string; overdu
+         +e: boolean };                                                  
+      82 +    expect(view.status).toBe("cancelled");                     
+      83 +    expect(view.overdue).toBe(false);                          
+      84 +  });                                                          
+      85  });
+      86  
+      87  describe("HTTP error mapping", () => {
+
+⏺ Update(tests/integration/http-api.test.ts)
+  ⎿  Added 17 lines
+      105      const body = (await res.json()) as { error: { code: string
+            } };
+      106      expect(body.error.code).toBe("EMPTY_INVOICE");
+      107    });
+      108 +                                                              
+      109 +  it("cancelling a paid invoice → 409 INVOICE_NOT_CANCELABLE",
+          + async () => {                                                
+      110 +    const created = await post("/invoices", { customerName: "A
+          +CME", currency: "BRL" });                                     
+      111 +    const { invoiceId } = (await created.json()) as { invoiceI
+          +d: string };                                                  
+      112 +    await post(`/invoices/${invoiceId}/line-items`, {         
+      113 +      description: "Consulting",                              
+      114 +      unitPriceCents: 10_000,                                 
+      115 +      quantity: 2,                                            
+      116 +    });                                                       
+      117 +    await post(`/invoices/${invoiceId}/send`, { dueDate: "2026
+          +-08-01T12:00:00Z" });                                         
+      118 +    await post(`/invoices/${invoiceId}/payments`, { amountCent
+          +s: 20_000 });                                                 
+      119 +                                                              
+      120 +    const res = await post(`/invoices/${invoiceId}/cancel`, {}
+          +);                                                            
+      121 +    expect(res.status).toBe(409);                             
+      122 +    const body = (await res.json()) as { error: { code: string
+          + } };                                                         
+      123 +    expect(body.error.code).toBe("INVOICE_NOT_CANCELABLE");   
+      124 +  });                                                         
+      125  });
+
+⏺ Bash(rm /Users/lucasgodt/Downloads/oart/.agent/allow-test-edits)
+  ⎿  Done
+
+⏺ Update(src/domain/errors.ts)
+  ⎿  Added 7 lines
+      26    }
+      27  }
+      28  
+      29 +export class InvoiceNotCancelableError extends DomainError {   
+      30 +  readonly code = "INVOICE_NOT_CANCELABLE";                    
+      31 +  constructor(status: string) {                                
+      32 +    super(`only draft or sent invoices can be cancelled, curren
+         +t status: ${status}`);                                         
+      33 +  }                                                            
+      34 +}                                                              
+      35 +                                                               
+      36  export class InvoiceNotPayableError extends DomainError {
+      37    readonly code = "INVOICE_NOT_PAYABLE";
+      38    constructor(status: string) {
+
+⏺ Update(src/domain/invoice.ts)
+  ⎿  Added 2 lines, removed 1 line
+       2    EmptyInvoiceError,
+       3    InvalidDueDateError,
+       4    InvalidLineItemError,
+       5 +  InvoiceNotCancelableError,                                   
+       6    InvoiceNotEditableError,
+       7    InvoiceNotPayableError,
+       8    PaymentExceedsBalanceError,
+       9  } from "./errors.js";
+      10  import { Money } from "./money.js";
+      11  
+      11 -export type InvoiceStatus = "draft" | "sent" | "paid";         
+      12 +export type InvoiceStatus = "draft" | "sent" | "paid" | "cancel
+         +led";                                                          
+      13  
+      14  export interface LineItem {
+      15    readonly description: string;
+
+⏺ Update(src/domain/invoice.ts)
+  ⎿  Added 1 line
+      28   * an invalid Invoice from outside this file.
+      29   *
+      30   * State machine:  draft --send()--> sent --recordPayment() unt
+          il balance 0--> paid
+      31 + *                 draft/sent --cancel()--> cancelled (terminal
+         +; paid cannot be cancelled)                                    
+      32   * "Overdue" is intentionally NOT a status: it is derived from
+      33   * (status === "sent" && now > dueDate). See docs/adr/0002.
+      34   */
+
+⏺ Update(src/domain/invoice.ts)
+  ⎿  Added 7 lines
+      161      }
+      162    }
+      163  
+      164 +  cancel(): void {                                            
+      165 +    if (this._status !== "draft" && this._status !== "sent") {
+      166 +      throw new InvoiceNotCancelableError(this._status);      
+      167 +    }                                                         
+      168 +    this._status = "cancelled";                               
+      169 +  }                                                           
+      170 +                                                              
+      171    // ── Serialization boundary ───────────────────────────────
+           ────
+      172  
+      173    snapshot(): InvoiceSnapshot {
+
+⏺ Write(src/application/use-cases/cancel-invoice.ts)
+  ⎿  Error writing file
+
+⏺ Update(src/application/use-cases/get-invoice.ts)
+  ⎿  Added 2 lines, removed 1 line
+      1  import { InvoiceNotFoundError } from "../../domain/errors.js";
+      2 +import type { InvoiceStatus } from "../../domain/invoice.js";   
+      3  import type { Clock } from "../ports/clock.js";
+      4  import type { InvoiceRepository } from "../ports/invoice-reposit
+         ory.js";
+      5  
+     ...
+       7    id: string;
+       8    customerName: string;
+       9    currency: string;
+       9 -  status: "draft" | "sent" | "paid";                           
+      10 +  status: InvoiceStatus;                                       
+      11    overdue: boolean;
+      12    dueDate: string | null;
+      13    totalCents: number;
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Write(src/application/use-cases/cancel-invoice.ts)
+  ⎿  Added 9 lines, removed 3 lines
+       1 +import { InvoiceNotFoundError } from "../../domain/errors.js"; 
+       2  import type { InvoiceRepository } from "../ports/invoice-reposi
+          tory.js";
+       3  
+       4  export interface CancelInvoiceInput {
+       4 -  // TODO: define after the spec is agreed                     
+       5 +  invoiceId: string;                                           
+       6  }
+       7  
+       8  /** Spec: specs/cancel-invoice.md */
+       9  export class CancelInvoice {
+      10    constructor(private readonly invoices: InvoiceRepository) {}
+      11  
+      11 -  async execute(_input: CancelInvoiceInput): Promise<void> {   
+      12 -    throw new Error("NOT_IMPLEMENTED: write the spec and tests 
+         -first (see AGENTS.md)");                                       
+      12 +  async execute(input: CancelInvoiceInput): Promise<void> {    
+      13 +    const invoice = await this.invoices.findById(input.invoiceI
+         +d);                                                            
+      14 +    if (!invoice) throw new InvoiceNotFoundError(input.invoiceI
+         +d);                                                            
+      15 +                                                               
+      16 +    invoice.cancel();                                          
+      17 +                                                               
+      18 +    await this.invoices.save(invoice);                         
+      19    }
+      20  }
+
+⏺ Agora o adaptador HTTP e a composition root.
+
+⏺ Update(src/infrastructure/http/app.ts)
+  ⎿  Added 2 lines
+      2  import { z, ZodError } from "zod";
+      3  import { DomainError } from "../../domain/errors.js";
+      4  import type { AddLineItem } from "../../application/use-cases/ad
+         d-line-item.js";
+      5 +import type { CancelInvoice } from "../../application/use-cases/
+        +cancel-invoice.js";                                             
+      6  import type { CreateInvoice } from "../../application/use-cases/
+         create-invoice.js";
+      7  import type { GetInvoice } from "../../application/use-cases/get
+         -invoice.js";
+      8  import type { RecordPayment } from "../../application/use-cases/
+         record-payment.js";
+     ...
+      13    addLineItem: AddLineItem;
+      14    sendInvoice: SendInvoice;
+      15    recordPayment: RecordPayment;
+      16 +  cancelInvoice: CancelInvoice;                                
+      17    getInvoice: GetInvoice;
+      18  }
+      19  
+
+⏺ Update(src/infrastructure/http/app.ts)
+  ⎿  Added 1 line
+      48    INVOICE_NOT_FOUND: 404,
+      49    INVOICE_NOT_EDITABLE: 409,
+      50    INVOICE_NOT_PAYABLE: 409,
+      51 +  INVOICE_NOT_CANCELABLE: 409,                                 
+      52    EMPTY_INVOICE: 422,
+      53    PAYMENT_EXCEEDS_BALANCE: 422,
+      54    INVALID_DUE_DATE: 422,
+⏺ Update(src/infrastructure/http/app.ts)
+  ⎿  Added 5 lines
+       92      return c.body(null, 204);
+       93    });
+       94  
+       95 +  app.post("/invoices/:id/cancel", async (c) => {             
+       96 +    await useCases.cancelInvoice.execute({ invoiceId: c.req.pa
+          +ram("id") });                                                 
+       97 +    return c.body(null, 204);                                 
+       98 +  });                                                         
+       99 +                                                              
+      100    app.post("/invoices/:id/payments", async (c) => {
+      101      const body = recordPaymentBody.parse(await c.req.json());
+      102      await useCases.recordPayment.execute({ invoiceId: c.req.pa
+           ram("id"), ...body });
+
+⏺ Update(src/main/composition-root.ts)
+  ⎿  Added 1 line
+      1  import { randomUUID } from "node:crypto";
+      2  import { AddLineItem } from "../application/use-cases/add-line-i
+         tem.js";
+      3 +import { CancelInvoice } from "../application/use-cases/cancel-i
+        +nvoice.js";                                                     
+      4  import { CreateInvoice } from "../application/use-cases/create-i
+         nvoice.js";
+      5  import { GetInvoice } from "../application/use-cases/get-invoice
+         .js";
+      6  import { RecordPayment } from "../application/use-cases/record-p
+         ayment.js";
+
+⏺ Update(src/main/composition-root.ts)
+  ⎿  Added 1 line
+      26      addLineItem: new AddLineItem(deps.invoices),
+      27      sendInvoice: new SendInvoice(deps.invoices, deps.clock),
+      28      recordPayment: new RecordPayment(deps.invoices, deps.clock)
+          ,
+      29 +    cancelInvoice: new CancelInvoice(deps.invoices),           
+      30      getInvoice: new GetInvoice(deps.invoices, deps.clock),
+      31    };
+      32  }
+
+⏺ Bash(npm run verify 2>&1 | tail -30)
+  ⎿  > open-agent-ready-typescript@1.0.0 deps
+     > depcruise src --config .dependency-cruiser.cjs
+     … +26 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+⏺ Bash(npm run test:coverage 2>&1 | tail -20)
+  ⎿    ...repository.ts |       0 |        0 |       0 |       0 |
+
+      ...tion/use-cases |     100 |      100 |     100 |     100 |
+     … +21 lines (ctrl+o to expand)
+
+⏺ Bash(git status --short && git add specs/cancel-invoice.md tests/ src/ && git
+      commit -m "$(cat <<'EOF'
+      Adicionar use case cancel-invoice: spec, testes espelhados, do…)
+  ⎿   M src/application/use-cases/get-invoice.ts
+      M src/domain/errors.ts
+      M src/domain/invoice.ts
+     … +13 lines (ctrl+o to expand)
+
+⏺ Exercício de benchmark concluído: o use case cancel-invoice está implementado,
+  com npm run verify verde e o commit 3c8dc26 criado no branch benchmark3 (o
+  hook de commit reexecutou o verify e passou).
+
+  Segui o fluxo exigido pelo AGENTS.md, na ordem:
+
+  1. Scaffold: npm run new -- cancel-invoice criou os stubs de spec, teste e use
+  case.
+  2. Spec (specs/cancel-invoice.md): 7 critérios Given/When/Then cobrindo
+  cancelamento de draft e sent, falha em paid e em cancelamento duplo com
+  INVOICE_NOT_CANCELABLE, terminalidade do status, "nunca overdue" e
+  INVOICE_NOT_FOUND. Escrita só depois que você concedeu .agent/allow-test-edits
+  — a única interação humana, como o exercício prevê; removi o override logo
+  após terminar specs e testes.
+  3. Testes: tests/unit/application/cancel-invoice.test.ts espelha os 7
+  critérios (it("N. ..."), validado pelo gate de spec-coverage); invariantes
+  novas no tests/unit/domain/invoice.test.ts (transições, terminalidade, nunca
+  overdue); e dois testes de integração HTTP (happy path 204 e paid → 409).
+  4. Domínio: InvoiceStatus ganhou "cancelled", novo InvoiceNotCancelableError
+  (código INVOICE_NOT_CANCELABLE) e o método Invoice.cancel(), que só aceita
+  draft/sent. Os guards existentes (assertDraft, exigência de sent em pagamentos
+  e no isOverdue) já garantem terminalidade e "nunca overdue" sem código extra.
+  5. Use case + HTTP + wiring: CancelInvoice (repo apenas, sem clock), rota POST
+  /invoices/:id/cancel retornando 204, mapeamento INVOICE_NOT_CANCELABLE → 409,
+  e registro na composition root.
+
+  Um ajuste adicional foi necessário além dos arquivos listados no exercício: o
+  tipo status do InvoiceView em get-invoice.ts estava com a união literal antiga
+  e agora referencia InvoiceStatus — sem isso o typecheck estrito falharia.
+
+  Resultado: 65 testes passando (6 use cases ↔ 6 specs, todos os critérios
+  espelhados), dependency-cruiser limpo e cobertura acima do limiar de 90%.
+
+✻ Cooked for 4m 22s
